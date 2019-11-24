@@ -10,17 +10,39 @@
 #include "gpio.h"
 #include "sj2_cli.h"
 
+#include "lcd.h"
 #include "mp3.h"
+
+static void task(void *params) {
+  lcd__initialize();
+  fprintf(stderr, "Initialized LCD...");
+
+  int cycles = 0;
+
+  while (1) {
+    lcd_clear();
+    vTaskDelay(1000);
+
+    char tempString[50]; // Needs to be large enough to hold the entire string with up to 5 digits
+    sprintf(tempString, "Cycles: %d", cycles++);
+
+    lcd_display_string(tempString);
+
+    vTaskDelay(1000);
+  }
+}
 
 // MAIN
 
 int main(void) {
   mp3__init();
 
-  xTaskCreate(mp3_reader_task, "reader_task", (512 * 8) / sizeof(void *), NULL, PRIORITY_MEDIUM, NULL);
-  xTaskCreate(mp3_player_task, "player_task", (512 * 8) / sizeof(void *), NULL, PRIORITY_HIGH, NULL);
+  // xTaskCreate(mp3_reader_task, "reader_task", (512 * 8) / sizeof(void *), NULL, PRIORITY_MEDIUM, NULL);
+  // xTaskCreate(mp3_player_task, "player_task", (512 * 8) / sizeof(void *), NULL, PRIORITY_HIGH, NULL);
 
-  sj2_cli__init();
+  xTaskCreate(task, "lcd_task", (512 * 4) / sizeof(void *), NULL, PRIORITY_HIGH, NULL);
+
+  //   sj2_cli__init();
 
   puts("Starting RTOS");
   vTaskStartScheduler(); // This function never returns unless RTOS scheduler runs out of memory and fails
