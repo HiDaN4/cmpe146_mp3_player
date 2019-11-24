@@ -1,0 +1,28 @@
+{
+    "files.associations": {
+        "startup.h": "c",
+        "stdint.h": "c",
+        "gpio_isr.h": "c",
+        "uart_printf.h": "c",
+        "lpc40xx.h": "c",
+        "clock.h": "c",
+        "queue.h": "c",
+        "freertos.h": "c",
+        "task.h": "c",
+        "common_macros.h": "c",
+        "i2c_slave_init.h": "c",
+        "ff.h": "c",
+        "algorithm": "c",
+        "deque": "c",
+        "memory": "c",
+        "streambuf": "c",
+        "*.tcc": "c",
+        "rope": "c",
+        "fstream": "c",
+        "istream": "c",
+        "ostream": "c",
+        "sstream": "c",
+        "*.def": "c",
+        "cli_handlers.h": "c"
+    }
+}

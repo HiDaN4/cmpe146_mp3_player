@@ -78,6 +78,7 @@ static void peripherals_init__uart0_init(void) {
 static void peripherals_init__i2c_init(void) {
   const uint32_t i2c_speed_hz = UINT32_C(400) * 1000;
   i2c__initialize(I2C__2, i2c_speed_hz, clock__get_peripheral_clock_hz());
+  i2c2__slave_init(0x12);
 
   for (unsigned slave_address = 2; slave_address <= 254; slave_address += 2) {
     if (i2c__detect(I2C__2, slave_address)) {

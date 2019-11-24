@@ -8,6 +8,8 @@
 #include "lpc40xx.h"
 #include "lpc_peripherals.h"
 
+#include "i2c_slave_functions.h"
+
 /// Set to non-zero to enable debugging, and then you can use I2C__DEBUG_PRINTF()
 #define I2C__ENABLE_DEBUGGING 0
 
@@ -23,6 +25,7 @@
 #define I2C__DEBUG_PRINTF(f_, ...) /* NOOP */
 #endif
 
+#define buffer_size 2
 /**
  * Data structure for each I2C peripheral
  */
@@ -43,6 +46,10 @@ typedef struct {
   uint8_t *input_byte_pointer;        ///< Used for reading I2C slave device
   const uint8_t *output_byte_pointer; ///< Used for writing data to the I2C slave device
   size_t number_of_bytes_to_transfer;
+
+  // added variables
+  uint8_t slave_buffer[buffer_size];
+  uint8_t counter;
 } i2c_s;
 
 /// Instances of structs for each I2C peripheral
@@ -272,6 +279,16 @@ static bool i2c__handle_state_machine(i2c_s *i2c) {
     I2C__STATE_MR_SLAVE_READ_NACK = 0x48,
     I2C__STATE_MR_SLAVE_ACK_SENT = 0x50,
     I2C__STATE_MR_SLAVE_NACK_SENT = 0x58,
+
+    // Slave Receiver States (SR):
+    I2C__STATE_SR_MASTER_ADDR_ACK = 0x60,
+    I2C__STATE_SR_MASTER_DATA_ACK = 0x80,
+    I2C__STATE_SR_MASTER_STOP = 0xA0,
+
+    // Slave Transmitter States (ST):
+    I2C__STATE_ST_MASTER_ADDR_ACK = 0xA8,
+    I2C__STATE_ST_MASTER_DATA_ACK = 0xB8,
+    I2C__STATE_ST_MASTER_STOP = 0xC8
   };
 
   bool stop_sent = false;
@@ -314,6 +331,7 @@ static bool i2c__handle_state_machine(i2c_s *i2c) {
       stop_sent = i2c__set_stop(lpc_i2c);
     } else {
       lpc_i2c->DAT = i2c->starting_slave_memory_address;
+      // I2C__DEBUG_PRINTF("Passing begin address: %u\n", i2c->starting_slave_memory_address);
       i2c__clear_si_flag_for_hw_to_take_next_action(lpc_i2c);
     }
     break;
@@ -329,6 +347,7 @@ static bool i2c__handle_state_machine(i2c_s *i2c) {
         stop_sent = i2c__set_stop(lpc_i2c);
       } else {
         lpc_i2c->DAT = *(i2c->output_byte_pointer);
+        // I2C__DEBUG_PRINTF("Passing data: %u\n", *(i2c->output_byte_pointer));
         ++(i2c->output_byte_pointer);
         --(i2c->number_of_bytes_to_transfer);
         i2c__clear_si_flag_for_hw_to_take_next_action(lpc_i2c);
@@ -380,11 +399,72 @@ static bool i2c__handle_state_machine(i2c_s *i2c) {
     i2c->error_code = lpc_i2c->STAT;
     break;
 
+  /* ADDED SR */
+  case I2C__STATE_SR_MASTER_ADDR_ACK:
+    i2c__set_ack_flag(lpc_i2c);
+    i2c__clear_si_flag_for_hw_to_take_next_action(lpc_i2c);
+    // set up slave receive mode
+    // init slave data counter
+    i2c->counter = 0;
+    for (int i = 0; i < buffer_size; ++i) {
+      i2c->slave_buffer[i] = 0;
+    }
+
+    break;
+
+  case I2C__STATE_SR_MASTER_DATA_ACK:
+    i2c->slave_buffer[i2c->counter] = (lpc_i2c->DAT & 0xFF);
+    if (i2c->counter == buffer_size) {
+      lpc_i2c->CONCLR = 0x0C;
+      stop_sent = i2c__set_stop(lpc_i2c);
+    } else {
+      i2c__set_ack_flag(lpc_i2c);
+      i2c__clear_si_flag_for_hw_to_take_next_action(lpc_i2c);
+      i2c->counter += 1;
+    }
+    break;
+
+  case I2C__STATE_SR_MASTER_STOP:
+    if (i2c->counter == buffer_size) {
+      // i2c_slave_callback__write_memory(i2c->slave_buffer[0], i2c->slave_buffer[1]);
+      stop_sent = i2c__set_stop(lpc_i2c);
+    } else {
+      i2c__set_ack_flag(lpc_i2c);
+      i2c__clear_si_flag_for_hw_to_take_next_action(lpc_i2c);
+    }
+
+    break;
+
+  /* ADDED ST */
+  case I2C__STATE_ST_MASTER_ADDR_ACK:
+    i2c->counter = 0;
+    uint8_t data = 0;
+    // i2c_slave_callback__read_memory(i2c->slave_buffer[i2c->counter++], &data);
+    lpc_i2c->DAT = data;
+    i2c__set_ack_flag(lpc_i2c);
+    i2c__clear_si_flag_for_hw_to_take_next_action(lpc_i2c);
+    // setup slave transmit mode data buffer
+    // increment buffer pointer
+    break;
+
+  case I2C__STATE_ST_MASTER_DATA_ACK:
+    // uint8_t data = lpc_i2c->DAT & 0xFF;
+    i2c__set_ack_flag(lpc_i2c);
+    i2c__clear_si_flag_for_hw_to_take_next_action(lpc_i2c);
+    // increment buffer pointer
+    break;
+
+  case I2C__STATE_ST_MASTER_STOP:
+    i2c__set_ack_flag(lpc_i2c);
+    i2c__clear_si_flag_for_hw_to_take_next_action(lpc_i2c);
+    break;
+
   case I2C__STATE_MT_SLAVE_ADDR_NACK: // no break
   case I2C__STATE_MT_SLAVE_DATA_NACK: // no break
   case I2C__STATE_MR_SLAVE_READ_NACK: // no break
   case I2C__STATE_BUS_ERROR:          // no break
   default:
+    // I2C__DEBUG_PRINTF("  GOT STATE: 0x%02X", (int)i2c_state);
     i2c->error_code = lpc_i2c->STAT;
     stop_sent = i2c__set_stop(lpc_i2c);
     break;
@@ -407,6 +487,7 @@ static bool i2c__set_stop(LPC_I2C_TypeDef *i2c) {
 
 static void i2c__handle_interrupt(i2c_s *i2c) {
   const bool stop_sent = i2c__handle_state_machine(i2c);
+  // I2C__DEBUG_PRINTF("Handled the interrupt: %u\n", stop_sent);
 
   if (stop_sent) {
     long higher_priority_task_woke = 0;

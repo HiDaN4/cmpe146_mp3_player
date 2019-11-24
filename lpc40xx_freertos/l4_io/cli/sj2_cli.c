@@ -34,7 +34,14 @@ void sj2_cli__init(void) {
                                              "tasklist <time>' will display CPU utilization within this time window.",
                                          .app_cli_handler = cli__task_list};
 
+  static app_cli__command_s mp3_play = {
+      .command_name = "mp3",
+      .help_message_for_command = "Interact with mp3 task\n"
+                                  "mp3 play <song_name.mp3>' will schedule a song with given name to be played.",
+      .app_cli_handler = cli__task_mp3_play};
+
   // Add your CLI commands in descending sorted order
+  app_cli__add_command_handler(&sj2_cli_struct, &mp3_play);
   app_cli__add_command_handler(&sj2_cli_struct, &task_list);
   app_cli__add_command_handler(&sj2_cli_struct, &i2c);
   app_cli__add_command_handler(&sj2_cli_struct, &crash);
