@@ -15,20 +15,22 @@
 
 static void task(void *params) {
   lcd__initialize();
-  fprintf(stderr, "Initialized LCD...");
+  fprintf(stderr, "Initialized LCD...\n");
 
   int cycles = 0;
-
+  vTaskDelay(500); // wait 500ms until LCD is done displaying Splash Screen
   while (1) {
+    fprintf(stderr, "Clearing LCD...\n");
     lcd_clear();
-    vTaskDelay(1000);
+    vTaskDelay(250);
 
     char tempString[50]; // Needs to be large enough to hold the entire string with up to 5 digits
-    sprintf(tempString, "Cycles: %d", cycles++);
+    sprintf(tempString, "Cycles: %d ", cycles++);
 
+    fprintf(stderr, "Displaying string on LCD...\n");
     lcd_display_string(tempString);
 
-    vTaskDelay(1000);
+    vTaskDelay(250);
   }
 }
 

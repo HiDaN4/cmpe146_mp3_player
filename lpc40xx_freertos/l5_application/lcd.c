@@ -5,101 +5,50 @@
 #include "gpio.h"
 #include "lpc_peripherals.h"
 #include "ssp2.h"
+#include "uart_lab.h"
 
-void ssp0__initialize(uint32_t max_clock_mhz) {
+static const uint32_t lcd_initial_baud_rate = 9600;
+static const uint32_t baud_rate = 115200;
 
-  // Refer to LPC User manual and setup the register bits correctly
-  // a) Power on Peripheral
-  lpc_peripheral__turn_on_power_to(LPC_PERIPHERAL__SSP0);
+static const uint8_t lcd_rows = 4;
+static const uint8_t lcd_columns = 20;
 
-  // b) Setup control registers CR0 and CR1
+static uart_number_e uart = UART__2;
 
-  // Select how many bits to send
-  LPC_SSP0->CR0 = (7 << 0);
+void configure_uart_pins(void) {
+  gpio_s u2_tx = gpio__construct_with_function(GPIO__PORT_2, 8, GPIO__FUNCTION_2);
+  gpio__set_as_output(u2_tx);
+  LPC_IOCON->P2_8 &= ~(3 << 3); // disable pull up/down resistors
 
-  // Enable Master
-  LPC_SSP0->CR1 = (1 << 1);
-
-  uint8_t divider = 2;
-
-  // set clock in MegaHz instead of KiloHz
-  const uint32_t cpu_clock_mhz = clock__get_core_clock_hz() / 1000000UL;
-
-  // Keep scaling down divider until calculated is higher
-  while (max_clock_mhz < (cpu_clock_mhz / divider) && divider <= 254) {
-    divider += 2;
-  }
-
-  LPC_SSP0->CPSR = divider;
+  gpio_s u2_rx = gpio__construct_with_function(GPIO__PORT_2, 9, GPIO__FUNCTION_2);
+  gpio__set_as_input(u2_rx);
+  LPC_IOCON->P2_9 &= ~(3 << 3); // disable pull up/down resistors
 }
 
-uint8_t ssp0__exchange_byte(uint8_t data_out) {
-  // Configure the Data register(DR) to send and receive data by checking the status register
-  LPC_SSP0->DR = data_out;
-  while (LPC_SSP0->SR & (1 << 4)) {
-  }
-
-  return (uint8_t)(LPC_SSP0->DR & 0xFF);
+void lcd__update_baud_rate(void) {
+  uart_lab__polled_put(uart, 0x7C); // Enter Settings mode
+  uart_lab__polled_put(uart, 0x12); // Change baud to 115200bps
 }
 
-const int lcd_cs_pin = 15;
-static gpio_s lcd_cs_gpio;
-
-static void lcd_cs(void) { gpio__reset(lcd_cs_gpio); }
-static void lcd_ds(void) { gpio__set(lcd_cs_gpio); }
-
-void configure_ssp2() {
-  gpio_s sck = gpio__construct_with_function(GPIO__PORT_1, 0, GPIO__FUNCTION_4);
-  gpio__set_as_output(sck);
-
-  gpio_s mosi = gpio__construct_with_function(GPIO__PORT_1, 1, GPIO__FUNCTION_4);
-  gpio__set_as_output(mosi);
-
-  gpio_s miso = gpio__construct_with_function(GPIO__PORT_1, 4, GPIO__FUNCTION_4);
-  gpio__set_as_input(miso);
-
-  lcd_cs_gpio = gpio__construct_with_function(GPIO__PORT_0, lcd_cs_pin, GPIO__FUNCITON_0_IO_PIN);
-  gpio__set_as_output(lcd_cs_gpio);
-
-  lcd_ds();
+void lcd__display_version(void) {
+  uart_lab__polled_put(uart, 0x7C);
+  uart_lab__polled_put(uart, 0x2C);
 }
 
 void lcd__initialize(void) {
-  uint32_t max_clock_speed_khz = 125;
-  ssp2__initialize(max_clock_speed_khz);
-
-  configure_ssp2();
-  return;
-
-  // SCK0 (0,15)
-  gpio__construct_with_function(GPIO__PORT_0, 15, GPIO__FUNCTION_2);
-
-  // set the MOSI0 (P0_18)
-  gpio__construct_with_function(GPIO__PORT_0, 18, GPIO__FUNCTION_2);
-
-  // set the MISO0 (P0_17)
-  gpio_s miso = gpio__construct_with_function(GPIO__PORT_0, 17, GPIO__FUNCTION_2);
-
-  // SetAsOutput
-  // CS0(0,16)
-  lcd_cs_gpio = gpio__construct_as_output(GPIO__PORT_0, lcd_cs_pin);
-  gpio__set_function(lcd_cs_gpio, GPIO__FUNCITON_0_IO_PIN);
+  configure_uart_pins();
+  uart_lab__init(uart, clock__get_peripheral_clock_hz(), lcd_initial_baud_rate);
 }
 
 void lcd_display_string(char *data) {
   fprintf(stderr, "Printing chars\n");
-  lcd_cs();
 
   for (int x = 0; data[x] != '\0'; x++) // Send chars until we hit the end of the string
-    ssp2__exchange_byte(data[x]);
-
-  lcd_ds();
+    uart_lab__polled_put(uart, data[x]);
   fprintf(stderr, "Done printing chars\n");
 }
 
 void lcd_clear(void) {
-  lcd_cs();
-  ssp2__exchange_byte('|');
-  ssp2__exchange_byte('-');
-  lcd_ds();
+  uart_lab__polled_put(uart, '|');
+  uart_lab__polled_put(uart, '-');
 }
