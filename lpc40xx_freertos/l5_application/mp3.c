@@ -9,6 +9,8 @@
 #include "ff.h"
 #include "queue.h"
 
+#include "lcd.h"
+
 const int song_name_bytes = 32;
 typedef char songname[32];
 
@@ -58,11 +60,14 @@ void mp3__init() {
 void mp3_reader_task(void *params) {
   char name[song_name_bytes];
   char data[data_size_bytes];
+  char player_text[80] = {'\0'};
   FIL file;
 
   // initialize data to 0
   memset(data, 0, data_size_bytes);
   memset(name, 0, song_name_bytes);
+
+  lcd__initialize();
 
   while (1) {
     xQueueReceive(Q_songname, &name[0], portMAX_DELAY);
@@ -72,6 +77,10 @@ void mp3_reader_task(void *params) {
       printf("ERROR: Failed to open file named: %s\n", name);
       continue;
     }
+
+    lcd_clear();
+    sprintf(player_text, "About to play: %s", name);
+    lcd_display_string(player_text);
 
     while (f_eof(&file) == false) {
       if (read_bytes(&file, data, data_size_bytes)) {
@@ -87,6 +96,10 @@ void mp3_reader_task(void *params) {
       }
     }
     close_file(&file);
+
+    lcd_clear();
+    sprintf(player_text, "Finished playing: %s", name);
+    lcd_display_string(player_text);
   }
 }
 
