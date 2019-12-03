@@ -14,9 +14,9 @@
 const int song_name_bytes = 32;
 typedef char songname[32];
 
-static const int data_size_bytes = 512;
+extern const int data_size_bytes;
 
-static xQueueHandle Q_songdata;
+xQueueHandle Q_songdata;
 xQueueHandle Q_songname;
 
 /// Open given file name and return true on success
@@ -43,12 +43,6 @@ bool read_bytes(FIL *file, char *buffer, int buffer_size) {
     return false;
   }
 }
-
-/// To be done
-bool mp3_decoder_needs_data() { return true; }
-
-/// Process given byte of data. For now, it just prints it
-void process_byte(char byte) { putchar(byte); }
 
 /// Perform initialization necessary for mp3
 void mp3__init() {
@@ -102,24 +96,5 @@ void mp3_reader_task(void *params) {
     lcd_clear();
     sprintf(player_text, "Finished playing: %s", name);
     lcd_display_string(player_text);
-  }
-}
-
-// Player task receives song data over Q_songdata to send it to the MP3 decoder
-void mp3_player_task(void *params) {
-  char data[data_size_bytes];
-  // initialize data to 0
-  memset(data, 0, data_size_bytes);
-
-  while (1) {
-    xQueueReceive(Q_songdata, &data[0], portMAX_DELAY);
-
-    for (int i = 0; i < data_size_bytes; ++i) {
-      if (!mp3_decoder_needs_data()) {
-        vTaskDelay(1);
-      }
-      process_byte(data[i]);
-    }
-    printf("\nFinished processing data...\n");
   }
 }

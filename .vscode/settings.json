@@ -23,6 +23,7 @@
         "ostream": "c",
         "sstream": "c",
         "*.def": "c",
-        "cli_handlers.h": "c"
+        "cli_handlers.h": "c",
+        "ssp2_driver.h": "c"
     }
 }

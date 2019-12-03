@@ -1,5 +1,18 @@
 #pragma once
 
+enum state_m {
+  uninitialized,
+  initialized,
+  deactivated,
+  loading,
+  ready,
+  playback,
+  playMIDIbeep,
+  paused_playback,
+  testing_memory,
+  testing_sinewave,
+}; // enum state_m
+
 /// Perform initialization necessary for mp3
 void mp3__init(void);
 
