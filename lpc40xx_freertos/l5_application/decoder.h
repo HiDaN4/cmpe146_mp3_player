@@ -3,24 +3,21 @@
 void mp3_decoder__initialize(void);
 
 union two_byte_reg {
-/**
- * \brief whole word value
- *
- * allows access and handeling of whole uint16_t (aka word) value
- */
+  /**
+   * \brief whole word value
+   *
+   * allows access and handeling of whole uint16_t (aka word) value
+   */
   uint16_t word;
 
-/**
- * \brief individual bytes
- *
- * allows access and handeling of individual uint8_t (aka bytes),
- * either MSB or LSB byte of word
- */
-  uint8_t  byte[2];
-} ;
-
-
-
+  /**
+   * \brief individual bytes
+   *
+   * allows access and handeling of individual uint8_t (aka bytes),
+   * either MSB or LSB byte of word
+   */
+  uint8_t byte[2];
+};
 
 /**
  * \brief A macro of the SCI MODE register's address (R/W)
@@ -29,4 +26,4 @@ union two_byte_reg {
  * (SM_SDINEW set).
  *
  */
-#define SCI_MODE        0x00
+#define SCI_MODE 0x00
