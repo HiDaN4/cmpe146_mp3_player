@@ -68,6 +68,8 @@ void mp3_reader_task(void *params) {
   memset(name, 0, song_name_bytes);
 
   lcd__initialize();
+  lcd_clear();
+  lcd_display_string("Welcome! Enter song name to play it!");
 
   while (1) {
     xQueueReceive(Q_songname, &name[0], portMAX_DELAY);

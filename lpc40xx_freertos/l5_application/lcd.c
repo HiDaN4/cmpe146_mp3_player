@@ -14,9 +14,10 @@ static const uint8_t lcd_rows = 4;
 static const uint8_t lcd_columns = 20;
 
 static uart_number_e uart = UART__2;
+static const uint8_t uart_tx_pin = 8;
 
 void configure_uart_pins(void) {
-  gpio_s u2_tx = gpio__construct_with_function(GPIO__PORT_2, 8, GPIO__FUNCTION_2);
+  gpio_s u2_tx = gpio__construct_with_function(GPIO__PORT_2, uart_tx_pin, GPIO__FUNCTION_2);
   gpio__set_as_output(u2_tx);
   LPC_IOCON->P2_8 &= ~(3 << 3); // disable pull up/down resistors
 
