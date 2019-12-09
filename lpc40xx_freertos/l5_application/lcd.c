@@ -42,11 +42,11 @@ void lcd__initialize(void) {
 }
 
 void lcd_display_string(char *data) {
-  fprintf(stderr, "Printing chars\n");
+  // fprintf(stderr, "Printing chars\n");
 
   for (int x = 0; data[x] != '\0'; x++) // Send chars until we hit the end of the string
     uart_lab__polled_put(uart, data[x]);
-  fprintf(stderr, "Done printing chars\n");
+  // fprintf(stderr, "Done printing chars\n");
 }
 
 void lcd_clear(void) {

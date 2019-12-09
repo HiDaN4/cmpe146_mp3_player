@@ -24,6 +24,10 @@
         "sstream": "c",
         "*.def": "c",
         "cli_handlers.h": "c",
-        "ssp2_driver.h": "c"
+        "ssp2_driver.h": "c",
+        "ssp.h": "c",
+        "ssp2.h": "c",
+        "stdio.h": "c",
+        "ssp0_driver.h": "c"
     }
 }
