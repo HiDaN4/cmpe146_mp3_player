@@ -36,7 +36,7 @@ bool read_bytes(FIL *file, char *buffer, int buffer_size) {
 
   if (FR_OK == result) {
     // success reading bytes
-    printf("READ: Successfully read num of bytes: %u\n", bytes_read);
+    // printf("READ: Successfully read num of bytes: %u\n", bytes_read);
     return true;
   } else {
     printf("READ: Error reading data\n");
