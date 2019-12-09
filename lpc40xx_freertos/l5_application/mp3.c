@@ -11,6 +11,8 @@
 
 #include "lcd.h"
 
+#include "sd_task.h"
+
 const int song_name_bytes = 32;
 typedef char songname[32];
 
@@ -64,6 +66,17 @@ void mp3_reader_task(void *params) {
   lcd__initialize();
   lcd_clear();
   lcd_display_string("Welcome! Enter song name to play it!");
+
+  /*
+  sd_list_files_s info = sd__list_mp3_files();
+
+  fprintf(stderr, "LIST OF MP3s (%i):\n", info.num_of_files);
+  for (list_node_s *node = info.list_of_file_names; node != NULL; node = node->next) {
+    fprintf(stderr, "* %s\n", node->file_name);
+  }
+
+  sd__list_cleanup(&info);
+  */
 
   while (1) {
     xQueueReceive(Q_songname, &name[0], portMAX_DELAY);

@@ -28,6 +28,9 @@
         "ssp.h": "c",
         "ssp2.h": "c",
         "stdio.h": "c",
-        "ssp0_driver.h": "c"
+        "ssp0_driver.h": "c",
+        "*.ipp": "cpp",
+        "typeindex": "c",
+        "typeinfo": "c"
     }
 }
