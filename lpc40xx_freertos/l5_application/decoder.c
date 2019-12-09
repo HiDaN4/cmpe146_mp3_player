@@ -205,8 +205,8 @@ uint16_t vs__read_register(uint8_t register_address) {
 }
 
 void mp3__enable_data_interrupt(void) {
-  gpio_isr__init();
-  gpio__attach_interrupt(mp3_dreq, GPIO_INTR__RISING_EDGE, &mp3__needs_data_interrupt);
+  // gpio_isr__init();
+  // gpio__attach_interrupt(mp3_dreq, GPIO_INTR__RISING_EDGE, &mp3__needs_data_interrupt);
 }
 
 void mp3__prepare_for_play(void) {
