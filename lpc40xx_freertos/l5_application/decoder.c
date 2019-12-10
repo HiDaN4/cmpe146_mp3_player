@@ -134,7 +134,7 @@ void vs_decoder__initialize(void) {
 
   MP3__DEBUG_PRINTF("Received VS clock value = 0x%02X", vs_clock);
 
-  ssp0_driver__set_clock(6);
+  ssp0_driver__set_clock(5);
 
   mp3__set_volume(40, 40);
 

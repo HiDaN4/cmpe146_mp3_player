@@ -47,6 +47,8 @@ void lcd__display_version(void) {
 void lcd__initialize(void) {
   configure_uart_pins();
   uart_lab__init(uart, clock__get_peripheral_clock_hz(), lcd_initial_baud_rate);
+  // lcd__update_baud_rate();
+  // uart_lab__init(uart, clock__get_peripheral_clock_hz(), baud_rate);
 }
 
 void lcd_display_string(char *data) {

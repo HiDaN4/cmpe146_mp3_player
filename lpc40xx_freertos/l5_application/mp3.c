@@ -20,6 +20,7 @@ extern const int data_size_bytes;
 
 xQueueHandle Q_songdata;
 xQueueHandle Q_songname;
+xQueueHandle Q_lcd_play_song;
 
 /// Open given file name and return true on success
 bool open_file(FIL *file, char *name) {
@@ -50,33 +51,18 @@ bool read_bytes(FIL *file, char *buffer, int buffer_size) {
 void mp3__init() {
   Q_songname = xQueueCreate(2, sizeof(songname));
   Q_songdata = xQueueCreate(1, sizeof(char) * data_size_bytes);
+  Q_lcd_play_song = xQueueCreate(2, sizeof(song_state_change_s));
 }
 
 // Reader tasks receives song-name over Q_songname to start reading it
 void mp3_reader_task(void *params) {
   char name[song_name_bytes];
   char data[data_size_bytes];
-  char player_text[80] = {'\0'};
   FIL file;
 
   // initialize data to 0
   memset(data, 0, data_size_bytes);
   memset(name, 0, song_name_bytes);
-
-  lcd__initialize();
-  lcd_clear();
-  lcd_display_string("Welcome! Enter song name to play it!");
-
-  /*
-  sd_list_files_s info = sd__list_mp3_files();
-
-  fprintf(stderr, "LIST OF MP3s (%i):\n", info.num_of_files);
-  for (list_node_s *node = info.list_of_file_names; node != NULL; node = node->next) {
-    fprintf(stderr, "* %s\n", node->file_name);
-  }
-
-  sd__list_cleanup(&info);
-  */
 
   while (1) {
     xQueueReceive(Q_songname, &name[0], portMAX_DELAY);
@@ -87,9 +73,12 @@ void mp3_reader_task(void *params) {
       continue;
     }
 
-    lcd_clear();
-    sprintf(player_text, "About to play: %s", name);
-    lcd_display_string(player_text);
+    song_state_change_s play_state;
+    play_state.songname = name;
+    play_state.state = STARTED;
+
+    // signal to LCD about playing song
+    xQueueSend(Q_lcd_play_song, &play_state, 0);
 
     while (f_eof(&file) == false) {
       if (read_bytes(&file, data, data_size_bytes)) {
@@ -106,8 +95,7 @@ void mp3_reader_task(void *params) {
     }
     close_file(&file);
 
-    lcd_clear();
-    sprintf(player_text, "Finished playing: %s", name);
-    lcd_display_string(player_text);
+    play_state.state = FINISHED;
+    xQueueSend(Q_lcd_play_song, &play_state, 10);
   }
 }
