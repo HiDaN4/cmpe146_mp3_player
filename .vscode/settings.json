@@ -36,6 +36,9 @@
         "iterator": "c",
         "string": "c",
         "string_view": "c",
-        "vector": "c"
+        "vector": "c",
+        "sd_task.h": "c",
+        "lcd_task.h": "c",
+        "mp3_reader.h": "c"
     }
 }

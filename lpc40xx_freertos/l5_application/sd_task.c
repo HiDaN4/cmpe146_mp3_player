@@ -1,7 +1,7 @@
 #include "sd_task.h"
 #include <stdlib.h>
 
-#include "mp3.h"
+#include "mp3_reader.h"
 
 #include "ff.h"
 #include "sl_string.h"

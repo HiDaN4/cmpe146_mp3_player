@@ -1,4 +1,4 @@
-#include "mp3.h"
+#include "mp3_reader.h"
 
 #include <stdbool.h>
 #include <stdio.h>
