@@ -1,6 +1,6 @@
 #pragma once
 
-typedef enum MP3_READER_STATE { STARTED, FINISHED } mp3_reader_state_e;
+typedef enum MP3_READER_STATE { IDLE, PLAYING, PAUSED, FINISHED } mp3_reader_state_e;
 
 typedef struct SONG_STATE_CHANGE {
   char *songname;

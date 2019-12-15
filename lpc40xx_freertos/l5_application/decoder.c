@@ -65,9 +65,7 @@ void mp3__reset(void) { gpio__reset(mp3_reset); }
  *
  * input values are -1/2dB. ~> 20 will be considered -10dB.
  */
-void mp3__set_volume(uint8_t left_channel, uint8_t right_channel) {
-  vs__write_register(SCI_VOL, left_channel, right_channel);
-}
+void mp3__set_volume(uint8_t left_channel, uint8_t right_channel) { vs__write_register(SCI_VOL, 0, 0); }
 
 void mp3_decoder__initialize(void) {
   mp3_dreq = gpio__construct_with_function(GPIO__PORT_2, 0, GPIO__FUNCITON_0_IO_PIN);

@@ -38,6 +38,10 @@ extern int song_name_bytes;
 static uint8_t current_line = 0;
 static uint8_t current_column = 0;
 
+static int isPlaying = 0;
+
+bool lcd_is_playing(void) { return isPlaying != 0; }
+
 void lcd__display_main(sd_list_files_s *info) {
   LCD__DEBUG_PRINTF("About to display the menu screen...\n");
   char lcd_text_buffer[20] = {'\0'};
@@ -77,15 +81,17 @@ void lcd_menu_task(void *param) {
 
   song_state_change_s song_state;
   song_state.songname = NULL;
-  song_state.state = STARTED;
+  song_state.state = IDLE;
   control_button_e action;
 
   while (1) {
     if (xQueueReceive(Q_lcd_play_song, &song_state, 500)) {
       lcd_clear();
       sprintf(lcd_text_buffer, "> %s", song_state.songname);
-      if (song_state.state == STARTED) {
+      if (song_state.state == PLAYING) {
         lcd_display_string_starting_at("Playing:", 0);
+      } else if (song_state.state == PAUSED) {
+        lcd_display_string_starting_at("Paused:", 0);
       } else if (song_state.state == FINISHED) {
         lcd_display_string_starting_at("Finished playing:", 0);
       }
@@ -124,13 +130,25 @@ void lcd_menu_task(void *param) {
       } break;
       case PLAY: {
         LCD__DEBUG_PRINTF("Play\n");
-        char *song_to_play_name = NULL;
-        lcd__get_name_of_song(&info, &song_to_play_name, current_line - 1);
 
-        LCD__DEBUG_PRINTF("Name of song to play: %s\n", song_to_play_name);
-        if (song_to_play_name != NULL) {
-          xQueueSend(Q_songname, song_to_play_name, 0);
+        if (isPlaying == 0) {
+          // nothing is playing, so we need to start playing a song
+          isPlaying = 1;
+
+          if (song_state.state == IDLE || song_state.state == FINISHED) {
+            char *song_to_play_name = NULL;
+            lcd__get_name_of_song(&info, &song_to_play_name, current_line - 1);
+
+            LCD__DEBUG_PRINTF("Name of song to play: %s\n", song_to_play_name);
+            if (song_to_play_name != NULL) {
+              xQueueSend(Q_songname, song_to_play_name, 0);
+            }
+          }
+        } else {
+          // song is playing, so we need to pause it
+          isPlaying = 0;
         }
+
       } break;
       default:
         break;

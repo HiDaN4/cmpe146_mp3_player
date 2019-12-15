@@ -10,6 +10,7 @@
 #include "queue.h"
 
 #include "lcd.h"
+#include "lcd_task.h"
 
 #include "sd_task.h"
 
@@ -75,13 +76,20 @@ void mp3_reader_task(void *params) {
 
     song_state_change_s play_state;
     play_state.songname = name;
-    play_state.state = STARTED;
+    play_state.state = PLAYING;
 
     // signal to LCD about playing song
     xQueueSend(Q_lcd_play_song, &play_state, 0);
 
     while (f_eof(&file) == false) {
       if (read_bytes(&file, data, data_size_bytes)) {
+        while (lcd_is_playing() == false) {
+          play_state.state = PAUSED;
+          xQueueSend(Q_lcd_play_song, &play_state, 0);
+          vTaskDelay(10);
+        }
+        play_state.state = PLAYING;
+        xQueueSend(Q_lcd_play_song, &play_state, 0);
         xQueueSend(Q_songdata, &data[0], portMAX_DELAY);
       } else {
         // error reading bytes
