@@ -39,6 +39,7 @@
         "vector": "c",
         "sd_task.h": "c",
         "lcd_task.h": "c",
-        "mp3_reader.h": "c"
+        "mp3_reader.h": "c",
+        "controller_task.h": "c"
     }
 }

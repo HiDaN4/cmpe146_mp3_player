@@ -10,8 +10,8 @@
 #include "gpio.h"
 #include "sj2_cli.h"
 
-#include "lcd.h"
-#include "lcd_task.h"
+#include "controller_task.h"
+#include "decoder.h"
 #include "mp3_reader.h"
 #include "playback_controls.h"
 
@@ -22,7 +22,7 @@ int main(void) {
 
   xTaskCreate(mp3_player_task, "player_task", (512 * 8) / sizeof(void *), NULL, PRIORITY_HIGH, NULL);
   xTaskCreate(mp3_reader_task, "reader_task", (512 * 8) / sizeof(void *), NULL, PRIORITY_MEDIUM, NULL);
-  xTaskCreate(lcd_menu_task, "lcd_task", (512 * 4) / sizeof(void *), NULL, PRIORITY_MEDIUM, NULL);
+  xTaskCreate(controller_task, "controller_task", (512 * 4) / sizeof(void *), NULL, PRIORITY_MEDIUM, NULL);
   xTaskCreate(playback_controls_task, "controls_task", (512 * 4) / sizeof(void *), NULL, PRIORITY_HIGH, NULL);
 
   // xTaskCreate(task, "lcd_task", (512 * 4) / sizeof(void *), NULL, PRIORITY_HIGH, NULL);

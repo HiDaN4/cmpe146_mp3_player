@@ -18,7 +18,7 @@
 #if MP3__ENABLE_DEBUGGING
 #define MP3__DEBUG_PRINTF(f_, ...)                                                                                     \
   do {                                                                                                                 \
-    fprintf(stderr, "MP3:");                                                                                           \
+    fprintf(stderr, "MP3_DECODER:");                                                                                   \
     fprintf(stderr, (f_), ##__VA_ARGS__);                                                                              \
     fprintf(stderr, "\n");                                                                                             \
   } while (0)
@@ -34,8 +34,6 @@ static gpio_s mp3_dreq;
 static gpio_s mp3_xcs;
 static gpio_s mp3_xdcs;
 static gpio_s mp3_reset;
-
-static enum state_m playing_state;
 
 void vs__write_register(uint8_t address, uint8_t high, uint8_t low);
 void process_byte(char byte);
@@ -216,7 +214,7 @@ void mp3__print_decode_time(void) {
   MP3__DEBUG_PRINTF("Value in SCI_DECODE_TIME = 0x%02X", res);
 }
 
-void mp3__print_red_data(uint8_t address) {
+void mp3__print_reg_data(uint8_t address) {
   uint16_t res = vs__read_register(address);
   MP3__DEBUG_PRINTF("Value in 0x%02X = 0x%02X", address, res);
 }
@@ -249,15 +247,13 @@ void mp3_player_task(void *params) {
   mp3_ds();
   mp3_data_ds();
   vs_decoder__initialize();
-  playing_state = initialized;
   mp3__prepare_for_play();
 
-  mp3__print_red_data(SCI_STATUS);
-  mp3__print_red_data(SCI_VOL);
+  mp3__print_reg_data(SCI_STATUS);
+  mp3__print_reg_data(SCI_VOL);
 
   while (1) {
     xQueueReceive(Q_songdata, &data[0], portMAX_DELAY);
-    playing_state = playback;
 
     for (int i = 0; i < data_size_bytes; ++i) {
       if (!mp3_decoder_needs_data()) {
@@ -267,8 +263,10 @@ void mp3_player_task(void *params) {
         ;
       process_byte(data[i]);
     }
-    mp3__print_red_data(SCI_DECODE_TIME);
+    mp3__print_reg_data(SCI_DECODE_TIME);
   }
+
+  vTaskDelete(NULL);
 }
 
 /*

@@ -1,19 +1,18 @@
 #pragma once
 
-enum state_m {
+typedef enum play_state {
   uninitialized,
   initialized,
-  deactivated,
-  loading,
   ready,
   playback,
-  playMIDIbeep,
   paused_playback,
-  testing_memory,
-  testing_sinewave,
-}; // enum state_m
+  finished_playback
+} play_state_e;
 
 void mp3_decoder__initialize(void);
+
+// Player task receives song data over Q_songdata to send it to the MP3 decoder
+void mp3_player_task(void *params);
 
 union two_byte_reg {
   /**

@@ -1,13 +1,12 @@
-#include "lcd.h"
+#include "lcd_driver.h"
 
-#include "lpc40xx.h"
 #include <stdio.h>
 #include <string.h>
 
 #include "clock.h"
 #include "gpio.h"
+#include "lpc40xx.h"
 #include "lpc_peripherals.h"
-#include "ssp2.h"
 #include "uart_lab.h"
 
 const uint8_t lcd_rows = 4;
@@ -24,7 +23,7 @@ static const uint8_t lcd_command_line_map[4] = {0, 64, 20, 84};
 static uart_number_e uart = UART__2;
 static const uint8_t uart_tx_pin = 8;
 
-void configure_uart_pins(void) {
+static void configure_uart_pins(void) {
   gpio_s u2_tx = gpio__construct_with_function(GPIO__PORT_2, uart_tx_pin, GPIO__FUNCTION_2);
   gpio__set_as_output(u2_tx);
   LPC_IOCON->P2_8 &= ~(3 << 3); // disable pull up/down resistors
@@ -34,12 +33,12 @@ void configure_uart_pins(void) {
   LPC_IOCON->P2_9 &= ~(3 << 3); // disable pull up/down resistors
 }
 
-void lcd__update_baud_rate(void) {
+static void lcd__update_baud_rate(void) {
   uart_lab__polled_put(uart, 0x7C); // Enter Settings mode
   uart_lab__polled_put(uart, 0x12); // Change baud to 115200bps
 }
 
-void lcd__display_version(void) {
+static void lcd__display_version(void) {
   uart_lab__polled_put(uart, 0x7C);
   uart_lab__polled_put(uart, 0x2C);
 }

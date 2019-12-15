@@ -9,9 +9,7 @@
 #include "ff.h"
 #include "queue.h"
 
-#include "lcd.h"
-#include "lcd_task.h"
-
+#include "lcd_driver.h"
 #include "sd_task.h"
 
 const int song_name_bytes = 32;
@@ -23,10 +21,11 @@ xQueueHandle Q_songdata;
 xQueueHandle Q_songname;
 xQueueHandle Q_lcd_play_song;
 
+song_state_change_s playing_state;
+
 /// Open given file name and return true on success
 bool open_file(FIL *file, char *name) {
   FRESULT result = f_open(file, name, (FA_READ | FA_OPEN_EXISTING));
-
   return (FR_OK == result);
 }
 
@@ -61,9 +60,12 @@ void mp3_reader_task(void *params) {
   char data[data_size_bytes];
   FIL file;
 
-  // initialize data to 0
-  memset(data, 0, data_size_bytes);
-  memset(name, 0, song_name_bytes);
+  // initialize data to '\0'
+  memset(data, '\0', data_size_bytes);
+  memset(name, '\0', song_name_bytes);
+
+  playing_state.songname = NULL;
+  playing_state.state = IDLE;
 
   while (1) {
     xQueueReceive(Q_songname, &name[0], portMAX_DELAY);
@@ -74,36 +76,36 @@ void mp3_reader_task(void *params) {
       continue;
     }
 
-    song_state_change_s play_state;
-    play_state.songname = name;
-    play_state.state = PLAYING;
+    playing_state.songname = name;
+    playing_state.state = PLAYING;
 
     // signal to LCD about playing song
-    xQueueSend(Q_lcd_play_song, &play_state, 0);
+    xQueueSend(Q_lcd_play_song, &playing_state, 0);
 
     while (f_eof(&file) == false) {
       if (read_bytes(&file, data, data_size_bytes)) {
-        while (lcd_is_playing() == false) {
-          play_state.state = PAUSED;
-          xQueueSend(Q_lcd_play_song, &play_state, 0);
+        while (playing_state.state == PAUSED) {
           vTaskDelay(10);
         }
-        play_state.state = PLAYING;
-        xQueueSend(Q_lcd_play_song, &play_state, 0);
+
+        // check if q_songs has more items? if yes, break from this loop
+        if (uxQueueMessagesWaiting(Q_songname) > 0) {
+          printf("There is a song in the queue, so stopping playing...\n");
+          break;
+        }
+
         xQueueSend(Q_songdata, &data[0], portMAX_DELAY);
       } else {
         // error reading bytes
         printf("ERROR: Failed to read bytes from the file!\n");
         break;
       }
-      // check if q_songs has more items? if yes, break from this loop
-      if (uxQueueMessagesWaiting(Q_songname) > 0) {
-        break;
-      }
     }
     close_file(&file);
 
-    play_state.state = FINISHED;
-    xQueueSend(Q_lcd_play_song, &play_state, 10);
+    playing_state.state = FINISHED;
+    xQueueSend(Q_lcd_play_song, &playing_state, 10);
   }
+
+  vTaskDelete(NULL);
 }
