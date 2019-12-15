@@ -10,11 +10,11 @@
 #include "ssp2.h"
 #include "uart_lab.h"
 
+const uint8_t lcd_rows = 4;
+const uint8_t lcd_columns = 20;
+
 static const uint32_t lcd_initial_baud_rate = 9600;
 static const uint32_t baud_rate = 115200;
-
-static const uint8_t lcd_rows = 4;
-static const uint8_t lcd_columns = 20;
 
 static uint8_t lcd_current_line = 0;
 static uint8_t lcd_current_column = 0;

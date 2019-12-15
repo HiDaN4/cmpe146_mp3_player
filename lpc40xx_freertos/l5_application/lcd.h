@@ -1,6 +1,9 @@
 #pragma once
 #include <stdint.h>
 
+extern const uint8_t lcd_rows;
+extern const uint8_t lcd_columns;
+
 void lcd__initialize(void);
 
 void lcd_display_string(char *data);

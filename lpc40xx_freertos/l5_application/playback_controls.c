@@ -142,7 +142,6 @@ void playback_controls__initialize(void) {
 }
 
 void playback_controls_task(void *params) {
-
   playback_controls__initialize();
 
   Q_controls = xQueueCreate(1, sizeof(control_button_e));
@@ -169,7 +168,6 @@ void playback_controls_task(void *params) {
       action = BACK;
       xQueueSend(Q_controls, &action, 0);
     }
-
     vTaskDelay(300);
   }
 }

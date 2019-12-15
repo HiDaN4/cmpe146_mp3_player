@@ -56,6 +56,16 @@ void lcd__display_main(sd_list_files_s *info) {
   lcd_display_character_at('<', current_line, 19);
 }
 
+void lcd__get_name_of_song(sd_list_files_s *files, char **buffer, int line) {
+  int index = 0;
+  for (list_node_s *node = files->list_of_file_names; node != NULL; ++index, node = node->next) {
+    if (index == line) {
+      *buffer = node->file_name;
+      break;
+    }
+  }
+}
+
 void lcd_menu_task(void *param) {
   LCD__DEBUG_PRINTF("Task started...\n");
   lcd__initialize();
@@ -85,33 +95,45 @@ void lcd_menu_task(void *param) {
         // lcd__display_main(&info);
       }
     }
+
     if (xQueueReceive(Q_controls, &action, 500)) {
-      LCD__DEBUG_PRINTF("* Received control: %lu\n", action);
+      LCD__DEBUG_PRINTF("* Received control: %i\n", action);
       switch (action) {
-      case UP:
+      case UP: {
         LCD__DEBUG_PRINTF("Moving cursor up\n");
         lcd_remove_character_at(current_line, 19);
-        lcd_display_character_at('<', ++current_line, 19);
-        break;
-      case DOWN:
+        if (current_line > 0) {
+          lcd_display_character_at('<', --current_line, 19);
+        }
+
+        char *song_to_play_name = NULL;
+        lcd__get_name_of_song(&info, &song_to_play_name, current_line - 1);
+        if (song_to_play_name != NULL)
+          LCD__DEBUG_PRINTF("Name of song: %s\n", song_to_play_name);
+      } break;
+      case DOWN: {
         LCD__DEBUG_PRINTF("Moving cursor down\n");
         lcd_remove_character_at(current_line, 19);
-        lcd_display_character_at('<', --current_line, 19);
-        break;
+        if (current_line < lcd_rows)
+          lcd_display_character_at('<', ++current_line, 19);
+
+        char *song_to_play_name = NULL;
+        lcd__get_name_of_song(&info, &song_to_play_name, current_line - 1);
+        if (song_to_play_name != NULL)
+          LCD__DEBUG_PRINTF("Name of song: %s\n", song_to_play_name);
+      } break;
       case PLAY: {
         LCD__DEBUG_PRINTF("Play\n");
         char *song_to_play_name = NULL;
-        int index = 0;
-        for (list_node_s *node = info.list_of_file_names; node != NULL; ++index, node = node->next) {
-          if (index == (current_line - 1)) {
-            song_to_play_name = node->file_name;
-            break;
-          }
-        }
+        lcd__get_name_of_song(&info, &song_to_play_name, current_line - 1);
+
         LCD__DEBUG_PRINTF("Name of song to play: %s\n", song_to_play_name);
-        xQueueSend(Q_songname, song_to_play_name, 0);
+        if (song_to_play_name != NULL) {
+          xQueueSend(Q_songname, song_to_play_name, 0);
+        }
+      } break;
+      default:
         break;
-      }
       }
     }
   }
