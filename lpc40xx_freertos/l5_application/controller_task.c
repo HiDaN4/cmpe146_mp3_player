@@ -32,7 +32,7 @@ extern xQueueHandle Q_controls;
 extern xQueueHandle Q_songname;
 
 extern int song_name_bytes;
-extern song_state_change_s playing_state;
+song_state_change_s playing_state;
 
 static uint8_t current_line = 0;
 static uint8_t current_column = 0;
@@ -59,6 +59,14 @@ void lcd__display_main(sd_list_files_s *info) {
     for (list_node_s *node = info->list_of_file_names; node != NULL && song_index < 4; node = node->next) {
       sprintf(lcd_text_buffer, "%i. %s", song_index, node->file_name);
       lcd_display_string_starting_at(lcd_text_buffer, song_index);
+
+      if (playing_state.songname != NULL && strcmp(playing_state.songname, node->file_name) == 0) {
+        // currently playing song
+        if (playing_state.state == PLAYING)
+          lcd_display_character_at('P', song_index, 17);
+        else
+          lcd_remove_character_at(song_index, 17);
+      }
       song_index += 1;
     }
     lcd_display_character_at('<', current_line, 19);
@@ -83,7 +91,6 @@ void lcd__update_screen(mp3_reader_state_e state) {
   if (lcd_menu_screen != DETAILS) {
     return;
   }
-
   switch (state) {
   case PLAYING:
     lcd_display_string_starting_at("Playing:", 0);
@@ -103,7 +110,8 @@ void controller_task(void *param) {
   CONTROLLER__DEBUG_PRINTF("Task started...\n");
   lcd__initialize();
   lcd_clear();
-  char lcd_text_buffer[20] = {'\0'};
+  char lcd_text_buffer[lcd_columns];
+  memset(lcd_text_buffer, '\0', lcd_columns);
 
   sd_list_files_s info = sd__list_mp3_files();
   lcd__display_main(&info);
@@ -116,10 +124,12 @@ void controller_task(void *param) {
   while (1) {
     if (xQueueReceive(Q_lcd_play_song, &song_state, 500)) {
       CONTROLLER__DEBUG_PRINTF("* Received song state: %i\n", song_state.state);
-      lcd_clear();
-      sprintf(lcd_text_buffer, "> %s", song_state.songname);
-      lcd__update_screen(song_state.state);
-      lcd_display_string_starting_at(lcd_text_buffer, 1);
+      if (lcd_menu_screen == DETAILS) {
+        lcd_clear();
+        sprintf(lcd_text_buffer, "> %s", song_state.songname);
+        lcd__update_screen(song_state.state);
+        lcd_display_string_starting_at(lcd_text_buffer, 1);
+      }
     }
 
     if (xQueueReceive(Q_controls, &action, 500)) {
@@ -127,6 +137,7 @@ void controller_task(void *param) {
       controller_handle_button_press(action, &info);
     }
   }
+
   sd__list_cleanup(&info);
   vTaskDelete(NULL);
 }
@@ -161,39 +172,42 @@ static void controller_handle_button_press(control_button_e button, sd_list_file
     CONTROLLER__DEBUG_PRINTF("Play/Pause\n");
 
     switch (lcd_menu_screen) {
-      case MENU:
-      {
-        
-      }
-      break;
-      case DETAILS:
-      {
-        // can only pause/play
-      }
-      break;
-      default: break;
-    }
+    case MAIN: {
+      CONTROLLER__DEBUG_PRINTF("Starting playing a song\n");
+      char *song_to_play_name = NULL;
+      lcd__get_name_of_song(info, &song_to_play_name, current_line - 1);
 
-    if (playing_state.state != PLAYING) {
-      
-      // nothing is playing, so we need to start playing a song
-      if (playing_state.state == IDLE || playing_state.state == FINISHED) {
-        CONTROLLER__DEBUG_PRINTF("Starting playing a song\n");
-        char *song_to_play_name = NULL;
-        lcd__get_name_of_song(info, &song_to_play_name, current_line - 1);
-
-        CONTROLLER__DEBUG_PRINTF("Name of song to play: %s\n", song_to_play_name);
-        if (song_to_play_name != NULL) {
-          xQueueSend(Q_songname, song_to_play_name, 0);
-        }
+      CONTROLLER__DEBUG_PRINTF("Name of song to play: %s\n", song_to_play_name);
+      if (song_to_play_name != NULL && strcmp(song_to_play_name, playing_state.songname) != 0) {
+        lcd_menu_screen = DETAILS;
+        xQueueSend(Q_songname, song_to_play_name, 0);
       } else {
+        // go to the details of the song since it is the same song
+        lcd_menu_screen = DETAILS;
+        lcd_clear();
+        char lcd_text_buffer[20] = {'\0'};
+        sprintf(lcd_text_buffer, "> %s", playing_state.songname);
+        lcd__update_screen(playing_state.state);
+        lcd_display_string_starting_at(lcd_text_buffer, 1);
+      }
+    } break;
+    case DETAILS: {
+      // can only pause/play
+      if (playing_state.state == PLAYING) {
+        // song is playing, so we need to pause it
+        controller_pause_song();
+      } else if (playing_state.state != FINISHED) {
         CONTROLLER__DEBUG_PRINTF("Continue playing the song\n");
         playing_state.state = PLAYING;
+        lcd_clear_line(0);
         lcd__update_screen(PLAYING);
+      } else if (playing_state.state == FINISHED) {
+        // restart the song
+        xQueueSend(Q_songname, &playing_state.songname[0], 0);
       }
-    } else if (playing_state.state == PLAYING) {
-      // song is playing, so we need to pause it
-      controller_pause_song();
+    } break;
+    default:
+      break;
     }
   } break;
   case BACK: {
@@ -214,5 +228,6 @@ static void controller_handle_button_press(control_button_e button, sd_list_file
 static void controller_pause_song(void) {
   CONTROLLER__DEBUG_PRINTF("Pausing the song\n");
   playing_state.state = PAUSED;
+  lcd_clear_line(0);
   lcd__update_screen(PAUSED);
 }

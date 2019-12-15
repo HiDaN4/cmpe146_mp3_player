@@ -21,7 +21,7 @@ xQueueHandle Q_songdata;
 xQueueHandle Q_songname;
 xQueueHandle Q_lcd_play_song;
 
-song_state_change_s playing_state;
+extern song_state_change_s playing_state;
 
 /// Open given file name and return true on success
 bool open_file(FIL *file, char *name) {

@@ -109,6 +109,16 @@ void lcd_remove_character_at(uint8_t line, uint8_t column) {
   uart_lab__polled_put(uart, ' ');
 }
 
+void lcd_clear_line(uint8_t line) {
+  char empty_line[lcd_columns];
+  for (int i = 0; i < lcd_columns - 1; i++) {
+    empty_line[i] = ' ';
+  }
+  empty_line[lcd_columns - 1] = '\0';
+
+  lcd_display_string_starting_at(empty_line, line);
+}
+
 void lcd_clear(void) {
   uart_lab__polled_put(uart, '|');
   uart_lab__polled_put(uart, '-');

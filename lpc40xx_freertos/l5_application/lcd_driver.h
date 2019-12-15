@@ -15,4 +15,5 @@ void lcd_display_character_at(char character, uint8_t line, uint8_t column);
 void lcd_set_cursor(uint8_t line, uint8_t column);
 
 void lcd_remove_character_at(uint8_t line, uint8_t column);
+void lcd_clear_line(uint8_t line);
 void lcd_clear(void);
