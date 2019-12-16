@@ -32,7 +32,7 @@ extern xQueueHandle Q_controls;
 extern xQueueHandle Q_songname;
 
 extern int song_name_bytes;
-song_state_change_s playing_state;
+extern song_state_change_s playing_state;
 
 static uint8_t current_line = 0;
 static uint8_t current_column = 0;
@@ -42,7 +42,7 @@ static lcd_menu_screen_e lcd_menu_screen;
 static void controller_handle_button_press(control_button_e button, sd_list_files_s *info);
 static void controller_pause_song(void);
 
-bool lcd_is_playing(void) { return playing_state.state == PLAYING; }
+bool controller_is_playing(void) { return playing_state.state == PLAYING; }
 
 void lcd__display_main(sd_list_files_s *info) {
   CONTROLLER__DEBUG_PRINTF("About to display the menu screen...\n");
