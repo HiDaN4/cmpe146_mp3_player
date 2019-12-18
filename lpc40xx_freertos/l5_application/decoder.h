@@ -14,6 +14,9 @@ void mp3_decoder__initialize(void);
 // Player task receives song data over Q_songdata to send it to the MP3 decoder
 void mp3_player_task(void *params);
 
+uint8_t mp3_get_volume(void);
+void mp3_set_volume(uint8_t new_volume);
+
 union two_byte_reg {
   /**
    * \brief whole word value
@@ -31,14 +34,14 @@ union two_byte_reg {
   uint8_t byte[2];
 };
 
+#define VS_WRITE_COMMAND 0x02
+
+#define VS_READ_COMMAND 0x03
+
 // Page 37
 
 /**
- * \brief SCI MODE register's address (R/W)
- *
- * SCI_MODE is a Read/Write register used to control the operation of VS1053b and defaults to 0x0800
- * (SM_SDINEW set).
- *
+ * SCI MODE register's address (R/W)
  */
 #define SCI_MODE 0x00
 

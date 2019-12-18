@@ -9,6 +9,7 @@
 #include "ff.h"
 #include "queue.h"
 
+#include "controller_task.h"
 #include "lcd_driver.h"
 #include "sd_task.h"
 
@@ -17,9 +18,10 @@ typedef char songname[32];
 
 extern const int data_size_bytes;
 
-xQueueHandle Q_songdata;
+extern xQueueHandle Q_songdata;
 xQueueHandle Q_songname;
 xQueueHandle Q_lcd_play_song;
+xQueueHandle Q_song_action;
 
 song_state_change_s playing_state;
 
@@ -50,8 +52,8 @@ bool read_bytes(FIL *file, char *buffer, int buffer_size) {
 /// Perform initialization necessary for mp3
 void mp3__init() {
   Q_songname = xQueueCreate(2, sizeof(songname));
-  Q_songdata = xQueueCreate(1, sizeof(char) * data_size_bytes);
   Q_lcd_play_song = xQueueCreate(2, sizeof(song_state_change_s));
+  Q_song_action = xQueueCreate(1, sizeof(mp3_reader_action_e));
 }
 
 // Reader tasks receives song-name over Q_songname to start reading it
@@ -82,10 +84,17 @@ void mp3_reader_task(void *params) {
     // signal to LCD about playing song
     xQueueSend(Q_lcd_play_song, &playing_state, 0);
 
+    mp3_reader_action_e control;
+    control = PLAY_SONG;
+
     while (f_eof(&file) == false) {
       if (read_bytes(&file, data, data_size_bytes)) {
-        while (playing_state.state == PAUSED) {
-          vTaskDelay(10);
+        // check if received play/pause action
+        if (xQueueReceive(Q_song_action, &control, 0)) {
+          while (control == PAUSE_SONG) {
+            // wait for play action
+            xQueueReceive(Q_song_action, &control, 10);
+          }
         }
 
         // check if q_songs has more items? if yes, break from this loop

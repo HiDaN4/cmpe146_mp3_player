@@ -13,7 +13,7 @@
 #include "queue.h"
 
 /// Set to non-zero to enable debugging, and then you can use MP3__DEBUG_PRINTF()
-#define MP3__ENABLE_DEBUGGING 1
+#define MP3__ENABLE_DEBUGGING 0
 
 #if MP3__ENABLE_DEBUGGING
 #define MP3__DEBUG_PRINTF(f_, ...)                                                                                     \
@@ -26,8 +26,10 @@
 #define MP3__DEBUG_PRINTF(f_, ...) /* NOOP */
 #endif
 
-extern xQueueHandle Q_songdata;
+xQueueHandle Q_songdata;
 const int data_size_bytes = 512;
+
+static uint8_t volume = 0;
 
 static gpio_s mp3_dreq;
 
@@ -63,7 +65,15 @@ void mp3__reset(void) { gpio__reset(mp3_reset); }
  *
  * input values are -1/2dB. ~> 20 will be considered -10dB.
  */
-void mp3__set_volume(uint8_t left_channel, uint8_t right_channel) { vs__write_register(SCI_VOL, 0, 0); }
+void mp3__set_volume(uint8_t left_channel, uint8_t right_channel) {
+  vs__write_register(SCI_VOL, left_channel, right_channel);
+}
+
+uint8_t mp3_get_volume(void) { return volume; }
+void mp3_set_volume(uint8_t new_volume) {
+  volume = new_volume;
+  mp3__set_volume(volume, volume);
+}
 
 void mp3_decoder__initialize(void) {
   mp3_dreq = gpio__construct_with_function(GPIO__PORT_2, 0, GPIO__FUNCITON_0_IO_PIN);
@@ -130,9 +140,9 @@ void vs_decoder__initialize(void) {
 
   MP3__DEBUG_PRINTF("Received VS clock value = 0x%02X", vs_clock);
 
-  ssp0_driver__set_clock(5);
+  ssp0_driver__set_clock(6);
 
-  mp3__set_volume(40, 40);
+  mp3__set_volume(0, 0);
 
   uint16_t vol = vs__read_register(SCI_VOL);
 
@@ -155,7 +165,7 @@ void vs__write_register(uint8_t address, uint8_t high, uint8_t low) {
   // TODO: consider mutex
   mp3_cs();
   {
-    ssp0_driver__exchange_byte(0x02); // write instruction
+    ssp0_driver__exchange_byte(VS_WRITE_COMMAND); // write instruction
     ssp0_driver__exchange_byte(address);
     ssp0_driver__exchange_byte(high);
     ssp0_driver__exchange_byte(low);
@@ -184,7 +194,7 @@ uint16_t vs__read_register(uint8_t register_address) {
   // TODO: consider mutex
   mp3_cs();
   {
-    ssp0_driver__exchange_byte(0x03);
+    ssp0_driver__exchange_byte(VS_READ_COMMAND);
     ssp0_driver__exchange_byte(register_address);
 
     // read the values
@@ -239,6 +249,7 @@ void process_bytes(char *bytes, int start, int end) {
 
 // Player task receives song data over Q_songdata to send it to the MP3 decoder
 void mp3_player_task(void *params) {
+  Q_songdata = xQueueCreate(1, sizeof(char) * data_size_bytes);
   char data[data_size_bytes];
   // initialize data to 0
   memset(data, 0, data_size_bytes);
