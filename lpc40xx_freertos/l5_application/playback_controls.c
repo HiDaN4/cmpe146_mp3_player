@@ -13,28 +13,34 @@ static gpio_s button1; // P0_1   ->Down
 static gpio_s button2; // P0_22  ->Play
 static gpio_s button3; // P0_18  ->Back
 
+// on board:
+// P1_19
+// P1_15
+// P0_30
+// P0_29
+
 xQueueHandle Q_controls;
 
 void playback_controls__initialize(void) {
-  button0 = gpio__construct_with_function(GPIO__PORT_1, 19, GPIO__FUNCITON_0_IO_PIN);
+  button0 = gpio__construct_with_function(GPIO__PORT_0, 8, GPIO__FUNCITON_0_IO_PIN);
   gpio__set_as_input(button0);
-  LPC_IOCON->P1_19 &= ~(3 << 3);
-  LPC_IOCON->P1_19 |= (1 << 3);
+  LPC_IOCON->P0_8 &= ~(3 << 3);
+  LPC_IOCON->P0_8 |= (1 << 3);
 
-  button1 = gpio__construct_with_function(GPIO__PORT_1, 15, GPIO__FUNCITON_0_IO_PIN);
+  button1 = gpio__construct_with_function(GPIO__PORT_0, 26, GPIO__FUNCITON_0_IO_PIN);
   gpio__set_as_input(button1);
-  LPC_IOCON->P1_15 &= ~(3 << 3);
-  LPC_IOCON->P1_15 |= (1 << 3);
+  LPC_IOCON->P0_26 &= ~(3 << 3);
+  LPC_IOCON->P0_26 |= (1 << 3);
 
-  button2 = gpio__construct_with_function(GPIO__PORT_0, 30, GPIO__FUNCITON_0_IO_PIN);
+  button2 = gpio__construct_with_function(GPIO__PORT_1, 31, GPIO__FUNCITON_0_IO_PIN);
   gpio__set_as_input(button2);
-  // LPC_IOCON->P0_30 &= ~(3 << 3);
-  // LPC_IOCON->P1_30 |= (1 << 3);
+  LPC_IOCON->P1_31 &= ~(3 << 3);
+  LPC_IOCON->P1_31 |= (1 << 3);
 
-  button3 = gpio__construct_with_function(GPIO__PORT_0, 29, GPIO__FUNCITON_0_IO_PIN);
+  button3 = gpio__construct_with_function(GPIO__PORT_1, 20, GPIO__FUNCITON_0_IO_PIN);
   gpio__set_as_input(button3);
-  // LPC_IOCON->P0_29 &= ~(3 << 3);
-  // LPC_IOCON->P0_29 |= (1 << 3);
+  LPC_IOCON->P1_20 &= ~(3 << 3);
+  LPC_IOCON->P1_20 |= (1 << 3);
 }
 
 void playback_controls_task(void *params) {

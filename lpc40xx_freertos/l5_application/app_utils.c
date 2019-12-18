@@ -6,8 +6,5 @@ int convert_volume_value(int new_volume) {
   static const int new_max = 100;
   static const int new_min = 0;
 
-  const int old_range = (orig_max - orig_min);
-  const int new_range = (new_max - new_min);
-
   return (new_volume - new_min) * (orig_max - orig_min) / (new_max - new_min) + orig_min;
 }
