@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "clock.h"
+#include "delay.h"
 #include "gpio.h"
 #include "lpc40xx.h"
 #include "lpc_peripherals.h"
@@ -13,7 +14,6 @@ const uint8_t lcd_rows = 4;
 const uint8_t lcd_columns = 20;
 
 static const uint32_t lcd_initial_baud_rate = 9600;
-static const uint32_t baud_rate = 115200;
 
 static uint8_t lcd_current_line = 0;
 static uint8_t lcd_current_column = 0;
@@ -34,27 +34,25 @@ static void configure_uart_pins(void) {
 }
 
 static void lcd__update_baud_rate(void) {
-  uart_lab__polled_put(uart, 0x7C); // Enter Settings mode
-  uart_lab__polled_put(uart, 0x12); // Change baud to 115200bps
+  uart_driver__polled_put(uart, 0x7C); // Enter Settings mode
+  uart_driver__polled_put(uart, 0x12); // Change baud to 115200bps
 }
 
 static void lcd__display_version(void) {
-  uart_lab__polled_put(uart, 0x7C);
-  uart_lab__polled_put(uart, 0x2C);
+  uart_driver__polled_put(uart, 0x7C);
+  uart_driver__polled_put(uart, 0x2C);
 }
 
 void lcd__initialize(void) {
   configure_uart_pins();
-  uart_lab__init(uart, clock__get_peripheral_clock_hz(), lcd_initial_baud_rate);
-  // lcd__update_baud_rate();
-  // uart_lab__init(uart, clock__get_peripheral_clock_hz(), baud_rate);
+  uint32_t peripheral_clock_hz = clock__get_peripheral_clock_hz();
+  uart_driver__init(uart, peripheral_clock_hz, lcd_initial_baud_rate);
 }
 
 void lcd_display_string(char *data) {
-  // fprintf(stderr, "Printing chars\n");
 
   for (int x = 0; data[x] != '\0'; x++) // Send chars until we hit the end of the string
-    uart_lab__polled_put(uart, data[x]);
+    uart_driver__polled_put(uart, data[x]);
   // fprintf(stderr, "Done printing chars\n");
   int string_length = strlen(data);
   lcd_current_line += string_length / lcd_columns;
@@ -81,15 +79,15 @@ void lcd_set_cursor(uint8_t line, uint8_t column) {
   if (column >= lcd_columns)
     column = 0;
 
-  uart_lab__polled_put(uart, 254);                                       // send command character
-  uart_lab__polled_put(uart, 128 + lcd_command_line_map[line] + column); // change position (128) of cursor
+  uart_driver__polled_put(uart, 254);                                       // send command character
+  uart_driver__polled_put(uart, 128 + lcd_command_line_map[line] + column); // change position (128) of cursor
 
   lcd_current_line = line;
   lcd_current_column = column;
 }
 
 void lcd_display_character(char character) {
-  uart_lab__polled_put(uart, character);
+  uart_driver__polled_put(uart, character);
 
   lcd_current_line += (lcd_current_column + 1) / lcd_columns;
 
@@ -106,7 +104,7 @@ void lcd_display_character_at(char character, uint8_t line, uint8_t column) {
 
 void lcd_remove_character_at(uint8_t line, uint8_t column) {
   lcd_set_cursor(line, column);
-  uart_lab__polled_put(uart, ' ');
+  uart_driver__polled_put(uart, ' ');
 }
 
 void lcd_clear_line(uint8_t line) {
@@ -120,6 +118,6 @@ void lcd_clear_line(uint8_t line) {
 }
 
 void lcd_clear(void) {
-  uart_lab__polled_put(uart, '|');
-  uart_lab__polled_put(uart, '-');
+  uart_driver__polled_put(uart, '|');
+  uart_driver__polled_put(uart, '-');
 }

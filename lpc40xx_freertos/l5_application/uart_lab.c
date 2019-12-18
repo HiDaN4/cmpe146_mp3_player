@@ -17,7 +17,7 @@ void uart__enable_dll_dlm(uart_number_e uart) { uarts[uart]->LCR |= (1 << 7); }
 
 void uart__disable_dll_dlm(uart_number_e uart) { uarts[uart]->LCR &= ~(1 << 7); }
 
-void uart_lab__init(uart_number_e uart, uint32_t peripheral_clock, uint32_t baud_rate) {
+void uart_driver__init(uart_number_e uart, uint32_t peripheral_clock, uint32_t baud_rate) {
   switch (uart) {
   case UART__2:
     LPC_SC->PCONP |= uart2_power_bit;
@@ -31,6 +31,10 @@ void uart_lab__init(uart_number_e uart, uint32_t peripheral_clock, uint32_t baud
   }
   uarts[uart]->LCR = (3 << 0); // set 8-bit character length
 
+  uart_driver__set_baud_rate(uart, peripheral_clock, baud_rate);
+}
+
+void uart_driver__set_baud_rate(uart_number_e uart, uint32_t peripheral_clock, uint32_t baud_rate) {
   uart__enable_dll_dlm(uart);
   {
     const uint32_t register_value = (peripheral_clock) / (16 * baud_rate);
@@ -42,7 +46,7 @@ void uart_lab__init(uart_number_e uart, uint32_t peripheral_clock, uint32_t baud
   uarts[uart]->FDR &= ~(7 << 0); // disable fractional divider
 }
 
-bool uart_lab__polled_get(uart_number_e uart, char *input_byte) {
+bool uart_driver__polled_get(uart_number_e uart, char *input_byte) {
   while (!(uarts[uart]->LSR & 1)) {
     ; // wait while it does not become 1
   }
@@ -50,7 +54,7 @@ bool uart_lab__polled_get(uart_number_e uart, char *input_byte) {
   return true;
 }
 
-bool uart_lab__polled_put(uart_number_e uart, char output_byte) {
+bool uart_driver__polled_put(uart_number_e uart, char output_byte) {
   while (!(uarts[uart]->LSR & (1 << 5))) {
     ; // wait until there is something to write
   }
@@ -102,4 +106,6 @@ void uart__enable_receive_interrupt(uart_number_e uart_number) {
   }
 }
 
-bool uart_lab__get_char_from_queue(char *byte, uint32_t timeout) { return xQueueReceive(uart_rx_queue, byte, timeout); }
+bool uart_driver__get_char_from_queue(char *byte, uint32_t timeout) {
+  return xQueueReceive(uart_rx_queue, byte, timeout);
+}

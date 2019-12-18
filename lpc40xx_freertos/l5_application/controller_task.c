@@ -153,7 +153,6 @@ void controller_task(void *param) {
       CONTROLLER__DEBUG_PRINTF("* Received song state: %i\n", playing_state.state);
       current_menu->render(&info, playing_state);
     }
-
     if (xQueueReceive(Q_controls, &action, 500)) {
       CONTROLLER__DEBUG_PRINTF("* Received control: %i\n", action);
       current_menu->handler(action, &info);
@@ -230,7 +229,6 @@ static void controller_details_menu_handle_button_press(control_button_e button,
     } else if (playing_state.state != FINISHED) {
       CONTROLLER__DEBUG_PRINTF("Continue playing the song\n");
       playing_state.state = PLAYING;
-      lcd_clear_line(0);
       current_menu->render(info, playing_state);
       mp3_reader_action_e action = PLAY_SONG;
       xQueueSend(Q_song_action, &action, 0);
